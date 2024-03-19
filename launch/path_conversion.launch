@@ -1,0 +1,12 @@
+<launch>
+	<node pkg="mapconversion" type="path_converter" name="path_converter" respawn="false" output="screen">
+	    <remap from="pathIn" to="/path" />
+	    <remap from="pathOut" to="/path_3d" />
+	    <!-- Use true for UAVs and false for UGVs -->
+	    <param name="use_collision_sphere" value="true" />
+	    <!-- Not used by if use_collision_sphere is false -->
+	    <param name="collision_radius" value="0.50" />
+	    <param name="path_offset" value="1" />
+	    <param name="path_smothing_length" value="20" />
+	</node>
+</launch>
