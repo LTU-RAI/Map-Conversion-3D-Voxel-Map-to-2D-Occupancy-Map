@@ -49,7 +49,7 @@ void MapConverter::updateMap(vector<voxel> vMap){
             newMap.setHeightTop(x,y,hMap.free[x][y][0].top);
         }
     }
-    //check if there is and namboring get occupied cells
+    //check if there are a neighboring occupied cells
     for(int x=0;x<xSize;x++){
         for(int y=0;y<ySize;y++){           
             //find free space with a unknown neighbour 

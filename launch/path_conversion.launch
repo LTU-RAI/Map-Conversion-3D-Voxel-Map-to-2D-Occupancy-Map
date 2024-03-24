@@ -1,5 +1,5 @@
 <launch>
-	<node pkg="mapconversion" type="path_converter" name="path_converter" respawn="false" output="screen">
+	<node pkg="mapconversion" type="path_converter_node" name="path_converter" respawn="false" output="screen">
 	    <remap from="pathIn" to="/path" />
 	    <remap from="pathOut" to="/path_3d" />
 	    <!-- Use true for UAVs and false for UGVs -->

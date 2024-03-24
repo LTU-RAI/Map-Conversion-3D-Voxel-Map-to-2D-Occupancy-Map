@@ -1,5 +1,5 @@
 <launch>
-	<node pkg="mapconversion" type="map_conversion" name="map_conversion" respawn="false" output="screen"> 
+	<node pkg="mapconversion" type="map_conversion_node" name="map_conversion" respawn="false" output="screen"> 
 	    <remap from="ufomap" to="/ufomap_mapping_server_node/map" />
 	    <param name="resolution" value="0.1" />
 	    <param name="minimum_z" value="1" />
