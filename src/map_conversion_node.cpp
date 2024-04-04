@@ -3,6 +3,7 @@
 #include <ufo/map/occupancy_map.h>
 #include <ufomap_msgs/UFOMapStamped.h>
 #include <mapconversion/HeightMap.h>
+#include <mapconversion/SlopeMap.h>
 // To convert between UFO and ROS
 #include <ufomap_msgs/conversions.h>
 #include <ufomap_ros/conversions.h>
@@ -21,11 +22,12 @@ class MapToMap{
         ros::Subscriber subOdom;
 
         //pub
-        ros::Publisher pubMapUGV, pubMapUAV, pubMapFloor, pubMapCeiling ,pubHeightMap, pubMapSlope;
+        ros::Publisher pubMapUGV, pubMapUAV, pubMapFloor, pubMapCeiling ,pubHeightMap, pubMapSlopeVis,pubMapSlope;
         tf::TransformListener listener;
         //msg 
         nav_msgs::OccupancyGrid mapMsg;
         mapconversion::HeightMap heightMsg;
+        mapconversion::SlopeMap slopeMsg;
 
         MapConverter* MC;
         ufo::map::OccupancyMap* ufoMap;
@@ -58,7 +60,8 @@ class MapToMap{
         pubMapFloor=nh.advertise<nav_msgs::OccupancyGrid>("/visualization_floor_map",5);
         pubMapCeiling=nh.advertise<nav_msgs::OccupancyGrid>("/visualization_ceiling_map",5);
         pubHeightMap=nh.advertise<mapconversion::HeightMap>("/heightMap",5);
-        pubMapSlope=nh.advertise<nav_msgs::OccupancyGrid>("/visualization_slope_map",5);
+        pubMapSlopeVis=nh.advertise<nav_msgs::OccupancyGrid>("/visualization_slope_map",5);
+        pubMapSlope=nh.advertise<mapconversion::SlopeMap>("/slopeMap",5);
 
         MC=new MapConverter(resolution,minimumZ,minimumOccupancy);
         ufoMap=new ufo::map::OccupancyMap(resolution);
@@ -110,9 +113,11 @@ class MapToMap{
         mapMsg.info.origin.position.y = MC->map.offsetY();
         mapMsg.info.origin.position.z = mapZpos;
         heightMsg.info=mapMsg.info;
+        slopeMsg.info=mapMsg.info;
         mapMsg.data.resize(mapMsg.info.width * mapMsg.info.height);
         heightMsg.top.resize(mapMsg.info.width * mapMsg.info.height);
         heightMsg.bottom.resize(mapMsg.info.width * mapMsg.info.height);
+        slopeMsg.slope.resize(mapMsg.info.width * mapMsg.info.height);
 
         //pub map for UGV
         if(pubMapUGV.getNumSubscribers()!=0){
@@ -145,7 +150,7 @@ class MapToMap{
             pubMapUAV.publish(mapMsg);
         }
 
-        //pub rviz visualization fro heigth map
+        //pub rviz visualization for floor heigth map
         if(pubMapFloor.getNumSubscribers()!=0){
             if(MC->map.sizeY()==0||MC->map.sizeX()==0) return;
             double vMax=NAN,vMin=NAN;
@@ -177,7 +182,7 @@ class MapToMap{
 
             pubMapFloor.publish(mapMsg);
         }
-
+        //pub rviz visualization for cieling heigth map
         if(pubMapCeiling.getNumSubscribers()!=0){
             if(MC->map.sizeY()==0||MC->map.sizeX()==0) return;
             double vMax=NAN,vMin=NAN;
@@ -224,7 +229,7 @@ class MapToMap{
         }
 
         //pub rviz visualization fro slope map
-        if(pubMapSlope.getNumSubscribers()!=0){
+        if(pubMapSlopeVis.getNumSubscribers()!=0){
             double vMax=slopeMax*2, vMin=0;
 
             for(int y=0; y<MC->map.sizeY();y++){
@@ -239,7 +244,19 @@ class MapToMap{
 
                 }
             }
-            pubMapSlope.publish(mapMsg);
+            pubMapSlopeVis.publish(mapMsg);
+        }
+
+        //pub slope map 
+        if(pubMapSlope.getNumSubscribers()!=0){
+            for(int y=0; y<MC->map.sizeY();y++){
+                for(int x=0;x<MC->map.sizeX();x++){ 
+                    int index=x+y*MC->map.sizeX();  
+            
+                    slopeMsg.slope[index]=MC->map.getSlope(x,y);
+                }
+            }
+            pubMapSlope.publish(slopeMsg);
         }
     }
 

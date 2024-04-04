@@ -54,6 +54,8 @@ A node that converts the input 3D voxel map to a 2D occupancy map and a height m
 
 `heightMap`: 2D map containing the height of the floor and ceiling of the environment. 
 
+`slopeMap`: 2D map containing the slope value for the floor in the environment. 
+
 `visualization_floor_map`: Rviz cost map, for showing a heat map of the floor height in the `heightMap`. **This is only for visualization.** 
 
 `visualization_ceiling_map`: Rviz cost map, for showing a heat map of the ceiling height in the `heightMap`. **This is only for visualization.** 

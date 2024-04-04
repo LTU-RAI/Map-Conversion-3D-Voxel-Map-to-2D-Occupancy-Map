@@ -65,6 +65,7 @@ find_package(Eigen3 REQUIRED)
 add_message_files(
   FILES
   HeightMap.msg
+  SlopeMap.msg
 )
 
 ## Generate services in the 'srv' folder
