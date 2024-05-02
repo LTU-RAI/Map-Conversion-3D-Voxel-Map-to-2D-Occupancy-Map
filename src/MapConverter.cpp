@@ -15,13 +15,13 @@ MapConverter::~MapConverter(){
 void MapConverter::updateMap(vector<voxel> vMap){
     if(vMap.size()==0)return;
     vector<double> minMax =MapConverter::minMaxVoxel(vMap);
+    for(double mM : minMax) if(isinf(mM)) return; //If too few voxels of target resolution reserved to get the size
     //get number of cells in grid
     int xSize=(minMax[1]-minMax[0])/MapConverter::map.getResulution();
     int ySize=(minMax[3]-minMax[2])/MapConverter::map.getResulution();
     //creat local maps
     HeightRangeMap hMap(xSize,ySize);
     Map2D newMap(MapConverter::resolution,xSize,ySize,minMax[0],minMax[2]);
-
     for(voxel v : vMap){
         //as voxels can be larger then a map cell, this loop goes through all cell voxel occupies
         int sizeIndex=v.halfSize*2/MapConverter::map.getResulution();
@@ -49,6 +49,7 @@ void MapConverter::updateMap(vector<voxel> vMap){
             newMap.setHeightTop(x,y,hMap.free[x][y][0].top);
         }
     }
+    ROS_INFO("G4");
     //check if there are a neighboring occupied cells
     for(int x=0;x<xSize;x++){
         for(int y=0;y<ySize;y++){           
