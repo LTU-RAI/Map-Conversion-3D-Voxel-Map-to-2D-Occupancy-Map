@@ -7,8 +7,8 @@
 // To convert between UFO and ROS
 #include <ufomap_msgs/conversions.h>
 #include <ufomap_ros/conversions.h>
+
 #include <nav_msgs/OccupancyGrid.h>
-#include <tf/transform_listener.h>
 #include "MapConverter.hh"
 
 using namespace std;
@@ -23,7 +23,6 @@ class MapToMap{
 
         //pub
         ros::Publisher pubMapUGV, pubMapUAV, pubMapFloor, pubMapCeiling ,pubHeightMap, pubMapSlopeVis,pubMapSlope;
-        tf::TransformListener listener;
         //msg 
         nav_msgs::OccupancyGrid mapMsg;
         mapconversion::HeightMap heightMsg;
@@ -42,11 +41,6 @@ class MapToMap{
 
 	MapToMap(){
         ros::NodeHandle nh_priv("~");
-        resolution = nh_priv.param("resolution", 0.0);
-        if(resolution<=0.0){
-            ROS_FATAL("The resolution is not set, node will terminate. \nAdd \'_resolution:=x\' to rosrun command, or \'<param name=\"resolution\" value=\"x\"/>\' in launch file.");
-            ros::shutdown();
-        }
         slopeMax = nh_priv.param("max_slope_ugv", INFINITY);
         minimumZ = nh_priv.param("minimum_z", 1.0);
         minimumOccupancy = nh_priv.param("minimum_occupancy", 10);
@@ -62,9 +56,7 @@ class MapToMap{
         pubHeightMap=nh.advertise<mapconversion::HeightMap>("/heightMap",5);
         pubMapSlopeVis=nh.advertise<nav_msgs::OccupancyGrid>("/visualization_slope_map",5);
         pubMapSlope=nh.advertise<mapconversion::SlopeMap>("/slopeMap",5);
-
-        MC=new MapConverter(resolution,minimumZ,minimumOccupancy);
-        ufoMap=new ufo::map::OccupancyMap(resolution);
+        ufoMap=NULL;        
 	}
 
     ~MapToMap(){
@@ -72,6 +64,18 @@ class MapToMap{
     }
 
     void mapCallback(ufomap_msgs::UFOMapStamped::ConstPtr const& msg){
+        //Check that UFOMap type is suported 
+        if(msg->map.info.id!="occupancy_map"){
+            ROS_FATAL("This ROS node does not support colored UFOMaps. Please turn off the color in UFOMaps settings.");
+            ros::shutdown();
+            return;
+        }
+        //Set resulution 
+        if(ufoMap==NULL){
+            resolution = msg->map.info.resolution;
+            MC=new MapConverter(resolution,minimumZ,minimumOccupancy);
+            ufoMap=new ufo::map::OccupancyMap(resolution);
+        }
         //Convert ROS message to UFOMap
         ufomap_msgs::msgToUfo(msg->map, *ufoMap);
         
