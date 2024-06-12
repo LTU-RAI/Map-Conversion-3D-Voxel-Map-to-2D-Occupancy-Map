@@ -57,8 +57,6 @@ A node that converts the input 3D voxel map to a 2D occupancy map and a height m
 
 `map_position_z`: Z position used for the outputted 2D maps. 
 
-`resolution`: Resolution of voxel map and output 2D maps. **Must be set for node to function**.
-
 `minimum_z`: Minimum height of free space the robot can traverse. 
 
 `max_slope_ugv`: Maximum slope ground robot can climb, used to detect and represent obstacles in the 2D occupancy map
