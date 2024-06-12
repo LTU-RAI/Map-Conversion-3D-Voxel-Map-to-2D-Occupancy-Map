@@ -10,11 +10,32 @@ The Height map can also be used to convert paths from 2D to 3D using the path_co
 
 <img src="https://raw.githubusercontent.com/LTU-RAI/3D-Voxel-Map-to-2D-Occupancy-Map-Conversion-Using-Free-Space-Representation/Media/Media/cave.gif" style="zoom:80%;" />
 
+
+
+## Paper and Citation
+
+This ROS package is based on the following article:
+
+**3D Voxel Maps to 2D Occupancy Maps for Efficient Path Planning for Aerial and Ground Robots** [[ArXiv](https://arxiv.org/abs/2406.07270)]
+
+```
+@misc{fredriksson20243d,
+      title={3D Voxel Maps to 2D Occupancy Maps for Efficient Path Planning for Aerial and Ground Robots}, 
+      author={Scott Fredriksson and Akshit Saradagi and George Nikolakopoulos},
+      year={2024},
+      eprint={2406.07270},
+      archivePrefix={arXiv},
+      primaryClass={cs.RO}
+}
+```
+
+If you use this ROS package in a scientific publication, please cite the paper.
+
 ## Installation
 
 1. [Install UFOMap for ros](https://github.com/UnknownFreeOccupied/ufomap/wiki/Setup#installation)
 2. Navigate to src folder in workspace `cd ~/catkin_ws/src`
-3. Clone the GitHub  to ros workspace: `https://github.com/LTU-RAI/3D-Voxel-Map-to-2D-Occupancy-Map-Conversion-Using-Free-Space-Representation`
+3. Clone the GitHub  to ros workspace: `git clone https://github.com/LTU-RAI/3D-Voxel-Map-to-2D-Occupancy-Map-Conversion-Using-Free-Space-Representation`
 4. `cd ..`
 5. Build project: `catkin build mapconversion`
 
