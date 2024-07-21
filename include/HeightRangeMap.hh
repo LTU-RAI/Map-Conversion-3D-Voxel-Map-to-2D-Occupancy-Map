@@ -5,7 +5,7 @@ class HeightRangeMap{
     public:
         vector<vector<vector<heightRange>>> free;
         vector<vector<vector<heightRange>>> occupied;
-
+        vector<vector<point2D>> posMap;
 
         HeightRangeMap(int width=0, int height=0){
             setSize(width,height);
@@ -15,14 +15,18 @@ class HeightRangeMap{
         void setSize(int width, int height){
             free.resize(width);
             occupied.resize(width);
+            posMap.resize(width);
             for(int i=0;i<width;i++){
                 free[i].resize(height);
                 occupied[i].resize(height);
+                posMap[i].resize(height);
             }
         }
 
         //add occupied and free ranges, ranges are merged with existing ranges if they overlap 
-        void addRange(int x, int y, heightRange hr, bool isOccupied){
+        void addRange(int x, int y, heightRange hr, bool isOccupied, double posX, double posY){
+            point2D p={posX,posY};
+            posMap[x][y]=p;
             if(isOccupied)
                 inserthghtRange(hr,&occupied[x][y]);
             else    

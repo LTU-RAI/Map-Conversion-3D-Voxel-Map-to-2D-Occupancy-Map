@@ -33,6 +33,7 @@ class MapToMap{
         
         double resolution;
         double slopeMax;
+        int slopeEstimationSize;
         double minimumZ;
         int minimumOccupancy;
         string mapFrame;
@@ -42,12 +43,14 @@ class MapToMap{
 	MapToMap(){
         ros::NodeHandle nh_priv("~");
         slopeMax = nh_priv.param("max_slope_ugv", INFINITY);
+        slopeEstimationSize = nh_priv.param("slope_estimation_size", 1);
+        slopeEstimationSize=max(slopeEstimationSize,1);
         minimumZ = nh_priv.param("minimum_z", 1.0);
         minimumOccupancy = nh_priv.param("minimum_occupancy", 10);
         mapFrame = nh_priv.param("map_frame", string("map"));
         mapZpos = nh_priv.param("map_position_z", 0.0);
 
-        subUfoMap = nh.subscribe("/ufomap", 10, &MapToMap::mapCallback,this);
+        subUfoMap = nh.subscribe("/ufomap", 1, &MapToMap::mapCallback,this);
         
         pubMapUGV=nh.advertise<nav_msgs::OccupancyGrid>("/mapUGV",5);
         pubMapUAV=nh.advertise<nav_msgs::OccupancyGrid>("/mapUAV",5);
@@ -56,11 +59,10 @@ class MapToMap{
         pubHeightMap=nh.advertise<mapconversion::HeightMap>("/heightMap",5);
         pubMapSlopeVis=nh.advertise<nav_msgs::OccupancyGrid>("/visualization_slope_map",5);
         pubMapSlope=nh.advertise<mapconversion::SlopeMap>("/slopeMap",5);
-        ufoMap=NULL;        
+        ufoMap=NULL;  
 	}
 
     ~MapToMap(){
-        
     }
 
     void mapCallback(ufomap_msgs::UFOMapStamped::ConstPtr const& msg){
@@ -73,24 +75,37 @@ class MapToMap{
         //Set resulution 
         if(ufoMap==NULL){
             resolution = msg->map.info.resolution;
-            MC=new MapConverter(resolution,minimumZ,minimumOccupancy);
+            MC=new MapConverter(resolution,slopeEstimationSize,minimumZ,minimumOccupancy);
             ufoMap=new ufo::map::OccupancyMap(resolution);
         }
         //Convert ROS message to UFOMap
         ufomap_msgs::msgToUfo(msg->map, *ufoMap);
         
-        //get size of updated regon
-        ufo::map::OccupancyMap newMap(resolution);
-        ufomap_msgs::msgToUfo(msg->map, newMap);
-        ufo::geometry::AABB newAABB(newMap.getKnownBBX());
-        ufo::math::Vector3 min_point(newAABB.getMin());
-        ufo::math::Vector3 max_point(newAABB.getMax());
+        if(msg->map.info.bounding_volume.aabbs.size()<=0) return;
+        ufo::geometry::AABB newAABB;
+        newAABB=ufomap_msgs::msgToUfo(msg->map.info.bounding_volume.aabbs[0]);
         //get height of complete map
+        ufo::math::Vector3 max_point(newAABB.getMax());
+        ufo::math::Vector3 min_point(newAABB.getMin());
         min_point.z()=(ufoMap->getKnownBBX().getMin().z());
         max_point.z()=(ufoMap->getKnownBBX().getMax().z());
         //create bounding box, x,y size is from new map, z is from complete map
         ufo::geometry::AABB aabb(min_point, max_point);
+        update2Dmap(aabb);
+        pub();
+    }
 
+    //Update 2D map in the region of the aabb
+    void update2Dmap(ufo::geometry::AABB aabb){
+        ufo::math::Vector3 max_point(aabb.getMax());
+        ufo::math::Vector3 min_point(aabb.getMin());
+        vector<double> minMax(6);
+        minMax[0]=min_point.x();
+        minMax[1]=max_point.x();
+        minMax[2]=min_point.y();
+        minMax[3]=max_point.y();
+        minMax[4]=min_point.z();
+        minMax[5]=max_point.z();
         vector<voxel> voxelList;
         //get all free and occupide voxels in boundign box 
         for (auto it = ufoMap->beginLeaves(aabb, true, true, false, false, 0),it_end = ufoMap->endLeaves(); it != it_end; ++it) {
@@ -102,8 +117,7 @@ class MapToMap{
             v.occupied=it.isOccupied();
             voxelList.push_back(v);
         }
-        MC->updateMap(voxelList);
-        pub();
+        MC->updateMap(voxelList,minMax);
     }
 
     void pub(){
@@ -135,7 +149,6 @@ class MapToMap{
                     int index=x+y*MC->map.sizeX();  
             
                     mapMsg.data[index]=MC->map.get(x,y,slopeMax);
-
                 }
             }
             pubMapUGV.publish(mapMsg);
@@ -263,21 +276,11 @@ class MapToMap{
             pubMapSlope.publish(slopeMsg);
         }
     }
-
-	void spin(){
-        ros::Rate rate(10);
-        while(ros::ok()){
-
-            rate.sleep();
-        }
-    }
-
 };
 
 int main(int argc, char** argv)
 {
 	ros::init(argc, argv, "map_saver");
-	
 
 	MapToMap mtm;
 

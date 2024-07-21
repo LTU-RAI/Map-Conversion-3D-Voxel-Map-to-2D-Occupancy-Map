@@ -18,6 +18,7 @@ class PathConverter
 
 		//Map data
 		mapconversion::HeightMap hMap;
+		nav_msgs::Path cPath;
 		double currentResulution=0;
 
 		//collision area
@@ -50,9 +51,13 @@ class PathConverter
 		pubPath = nh.advertise<nav_msgs::Path>("pathOut",10);;
 	}
 
+	~PathConverter(){
+	}
+
 	void heightCallback(mapconversion::HeightMap newHeightMap){
 		hMap=newHeightMap;
 		updateCollisionArea(newHeightMap.info.resolution);
+		updatePath();
 	}
 
 	void updateCollisionArea(double newResulution){
@@ -87,8 +92,13 @@ class PathConverter
 	}
 
 	void pathCallback(nav_msgs::Path inPath){
+		cPath=inPath;
+		updatePath();
+	}
+
+	void updatePath(){
 		if(collisionArea.size()==0) return;
-		nav_msgs::Path outPath=inPath;
+		nav_msgs::Path outPath=cPath;
 
 		setPathHeight3D(&outPath);	
 
