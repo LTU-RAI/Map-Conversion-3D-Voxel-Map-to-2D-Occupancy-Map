@@ -20,7 +20,7 @@ This ROS package is based on the following article:
 
 ```
 @misc{fredriksson20243d,
-      title={3D Voxel Maps to 2D Occupancy Maps for Efficient Path Planning for Aerial and Ground Robots}, 
+      title={Voxel Map to Occupancy Map Conversion Using Free Space Projection for Efficient Map Representation for Aerial and Ground Robots}, 
       author={Scott Fredriksson and Akshit Saradagi and George Nikolakopoulos},
       year={2024},
       eprint={2406.07270},
@@ -60,6 +60,8 @@ A node that converts the input 3D voxel map to a 2D occupancy map and a height m
 `minimum_z`: Minimum height of free space the robot can traverse. 
 
 `max_slope_ugv`: Maximum slope ground robot can climb, used to detect and represent obstacles in the 2D occupancy map
+
+`slope_estimation_size`: Determine the size of the area used to estimate the slope in one cell. The size of the area will be equal to (2*`slope_estimation_size`+1)².
 
 #### Subscribed Topics
 
