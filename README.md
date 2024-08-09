@@ -16,7 +16,7 @@ The Height map can also be used to convert paths from 2D to 3D using the path_co
 
 This ROS package is based on the following article:
 
-**3D Voxel Maps to 2D Occupancy Maps for Efficient Path Planning for Aerial and Ground Robots** [[ArXiv](https://arxiv.org/abs/2406.07270)]
+**Voxel Map to Occupancy Map Conversion Using Free Space Projection for Efficient Map Representation for Aerial and Ground Robots** [[ArXiv](https://arxiv.org/abs/2406.07270)]
 
 ```
 @misc{fredriksson20243d,
