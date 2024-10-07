@@ -52,12 +52,7 @@
   <build_depend>roscpp</build_depend>
   <build_depend>roslib</build_depend>
   <build_depend>rospy</build_depend>
-  <build_depend>ufomap</build_depend>
-  <exec_depend>ufomap</exec_depend>
-  <build_depend>ufomap_msgs</build_depend>
-  <build_depend>ufomap_ros</build_depend>
-  <exec_depend>ufomap_msgs</exec_depend>
-  <exec_depend>ufomap_ros</exec_depend>
+  
   <build_depend>std_msgs</build_depend>
   <build_depend>nav_msgs</build_depend>
   <build_export_depend>roscpp</build_export_depend>

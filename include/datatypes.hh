@@ -1,5 +1,4 @@
 #pragma once
-#include "ros/console.h"
 #include "ros/ros.h"
 #include <Eigen/Dense>
 #include <vector>
