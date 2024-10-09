@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(mapconversion)
 
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3")
 set(CMAKE_CXX_STANDARD 14)
@@ -12,7 +13,13 @@ find_package(Eigen3 REQUIRED)
 
 ## Try to find UFOMap
 find_package(ufomap QUIET)
-if(ufomap_FOUND)
+
+## Try to find OctoMap
+find_package(octomap QUIET)
+
+find_package(ufomap_ros QUIET)
+find_package(ufomap_msgs QUIET)
+if(ufomap_ros_FOUND AND ufomap_msgs_FOUND)
   message(STATUS "Found UFOMap")
   set(USE_UFOMAP TRUE)
 else()
@@ -20,10 +27,12 @@ else()
 endif()
 
 ## Try to find OctoMap
-find_package(octomap QUIET)
-if(octomap_FOUND)
+find_package(octomap_ros QUIET)
+find_package(octomap_msgs QUIET)
+if(octomap_ros_FOUND  AND octomap_msgs_FOUND)
   message(STATUS "Found OctoMap")
   set(USE_OCTOMAP TRUE)
+  #find_package(octomap QUIET)
 else()
   message(STATUS "OctoMap not found")
 endif()
@@ -52,8 +61,11 @@ if(USE_OCTOMAP)
   list(APPEND catkin_components octomap_msgs octomap_ros)
 endif()
 
+
 ## Find Catkin packages
 find_package(catkin REQUIRED COMPONENTS ${catkin_components})
+
+
 
 ## Generate messages in the 'msg' folder
 add_message_files(
@@ -95,6 +107,9 @@ endif()
 if(USE_OCTOMAP)
   include_directories(${OCTOMAP_INCLUDE_DIRS})
 endif()
+
+
+catkin_package()
 
 ## Build the library
 add_library(map_convertion_calss src/MapConverter.cpp)
