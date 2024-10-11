@@ -1,5 +1,6 @@
 
 #include "MapConverter.hh"
+#include "HeightRangeMap.hh"
 
 MapConverter::MapConverter(double resolution, int slopeEstimationSize,
                            double minimumZ, int minimumOccupancy) {

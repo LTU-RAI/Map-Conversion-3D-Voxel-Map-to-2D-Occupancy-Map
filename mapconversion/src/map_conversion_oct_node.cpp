@@ -1,35 +1,40 @@
 #include "MapConverter.hh"
 #include "octomap/octomap_types.h"
-#include "ros/console.h"
+#include "octomap_msgs/msg/octomap.hpp"
 #include <cstddef>
 #include <cstdio>
-#include <mapconversion/HeightMap.h>
-#include <mapconversion/SlopeMap.h>
-#include <nav_msgs/OccupancyGrid.h>
-#include <nav_msgs/Odometry.h>
+#include <mapconversion_msgs/msg/height_map.hpp>
+#include <mapconversion_msgs/msg/slope_map.hpp>
+#include <memory>
+#include <nav_msgs/msg/occupancy_grid.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+#include <octomap/AbstractOcTree.h>
 #include <octomap/OcTree.h>
 #include <octomap/octomap.h>
-#include <octomap_msgs/Octomap.h>
 #include <octomap_msgs/conversions.h>
+#include <octomap_msgs/msg/octomap.h>
+#include <rclcpp/executors.hpp>
+#include <rclcpp/logging.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <rclcpp/utilities.hpp>
 #include <vector>
 
 using namespace std;
 
-class MapToMap {
+class MapToMap : public rclcpp::Node {
 private:
-  // ROS nh
-  ros::NodeHandle nh;
   // subs
-  ros::Subscriber subOctMap;
-  ros::Subscriber subOdom;
+  rclcpp::Subscription<octomap_msgs::msg::Octomap>::SharedPtr subOctMap;
 
   // pub
-  ros::Publisher pubMapUGV, pubMapUAV, pubMapFloor, pubMapCeiling, pubHeightMap,
-      pubMapSlopeVis, pubMapSlope;
+  rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr pubMapUGV,
+      pubMapUAV, pubMapFloor, pubMapCeiling, pubMapSlopeVis;
+  rclcpp::Publisher<mapconversion_msgs::msg::HeightMap>::SharedPtr pubHeightMap;
+  rclcpp::Publisher<mapconversion_msgs::msg::SlopeMap>::SharedPtr pubMapSlope;
   // msg
-  nav_msgs::OccupancyGrid mapMsg;
-  mapconversion::HeightMap heightMsg;
-  mapconversion::SlopeMap slopeMsg;
+  nav_msgs::msg::OccupancyGrid mapMsg;
+  mapconversion_msgs::msg::HeightMap heightMsg;
+  mapconversion_msgs::msg::SlopeMap slopeMsg;
 
   MapConverter *MC;
   octomap::OcTree *OcMap;
@@ -43,43 +48,48 @@ private:
   double mapZpos;
 
 public:
-  MapToMap() {
-    ros::NodeHandle nh_priv("~");
-    slopeMax = nh_priv.param("max_slope_ugv", INFINITY);
-    slopeEstimationSize = nh_priv.param("slope_estimation_size", 1);
+  MapToMap() : Node("map_conversion") {
+    slopeMax = this->declare_parameter("max_slope_ugv", INFINITY);
+    slopeEstimationSize = this->declare_parameter("slope_estimation_size", 1);
     slopeEstimationSize = max(slopeEstimationSize, 1);
-    minimumZ = nh_priv.param("minimum_z", 1.0);
-    minimumOccupancy = nh_priv.param("minimum_occupancy", 10);
-    mapFrame = nh_priv.param("map_frame", string("map"));
-    mapZpos = nh_priv.param("map_position_z", 0.0);
+    minimumZ = this->declare_parameter("minimum_z", 1.0);
+    minimumOccupancy = this->declare_parameter("minimum_occupancy", 10);
+    mapFrame = this->declare_parameter("map_frame", string("map"));
+    mapZpos = this->declare_parameter("map_position_z", 0.0);
 
-    subOctMap = nh.subscribe("/octomap", 1, &MapToMap::mapCallback, this);
+    subOctMap = this->create_subscription<octomap_msgs::msg::Octomap>(
+        "/octomap", 1,
+        std::bind(&MapToMap::mapCallback, this, std::placeholders::_1));
 
-    pubMapUGV = nh.advertise<nav_msgs::OccupancyGrid>("/mapUGV", 5);
-    pubMapUAV = nh.advertise<nav_msgs::OccupancyGrid>("/mapUAV", 5);
-    pubMapFloor =
-        nh.advertise<nav_msgs::OccupancyGrid>("/visualization_floor_map", 5);
-    pubMapCeiling =
-        nh.advertise<nav_msgs::OccupancyGrid>("/visualization_ceiling_map", 5);
-    pubHeightMap = nh.advertise<mapconversion::HeightMap>("/heightMap", 5);
-    pubMapSlopeVis =
-        nh.advertise<nav_msgs::OccupancyGrid>("/visualization_slope_map", 5);
-    pubMapSlope = nh.advertise<mapconversion::SlopeMap>("/slopeMap", 5);
+    pubMapUGV =
+        this->create_publisher<nav_msgs::msg::OccupancyGrid>("/mapUGV", 5);
+    pubMapUAV =
+        this->create_publisher<nav_msgs::msg::OccupancyGrid>("/mapUAV", 5);
+    pubMapFloor = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
+        "/visualization_floor_map", 5);
+    pubMapCeiling = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
+        "/visualization_ceiling_map", 5);
+    pubHeightMap = this->create_publisher<mapconversion_msgs::msg::HeightMap>(
+        "/heightMap", 5);
+    pubMapSlopeVis = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
+        "/visualization_slope_map", 5);
+    pubMapSlope = this->create_publisher<mapconversion_msgs::msg::SlopeMap>(
+        "/slopeMap", 5);
     OcMap = NULL;
     MC = NULL;
   }
 
   ~MapToMap() {}
 
-  void mapCallback(const octomap_msgs::Octomap::ConstPtr &msg) {
+  void mapCallback(octomap_msgs::msg::Octomap msg) {
     // Set resulution
     if (MC == NULL) {
-      resolution = msg->resolution;
+      resolution = msg.resolution;
       MC = new MapConverter(resolution, slopeEstimationSize, minimumZ,
                             minimumOccupancy);
     }
     // Convert ROS message to Octomap
-    octomap::AbstractOcTree *tree = octomap_msgs::msgToMap(*msg);
+    octomap::AbstractOcTree *tree = octomap_msgs::msgToMap(msg);
     octomap::OcTree *newOcMap = dynamic_cast<octomap::OcTree *>(tree);
     if (!(newOcMap))
       return;
@@ -191,7 +201,7 @@ public:
   }
 
   void pub() {
-    mapMsg.header.stamp = ros::Time::now();
+    mapMsg.header.stamp = this->now();
     mapMsg.header.frame_id = mapFrame;
     heightMsg.header = mapMsg.header;
     mapMsg.info.width = MC->map.sizeX();
@@ -208,15 +218,16 @@ public:
     slopeMsg.slope.resize(mapMsg.info.width * mapMsg.info.height);
 
     // pub map for UGV
-    if (pubMapUGV.getNumSubscribers() != 0) {
+    if (pubMapUGV->get_subscription_count() != 0) {
       if (isinf(slopeMax)) {
-        ROS_WARN(
+        RCLCPP_WARN(
+            this->get_logger(),
             "The max slope UGV is not set; obstacles will not be included in "
             "the UGV map. \nAdd \'_max_slope_ugv:=x\' to rosrun command, or "
             "\'<param name=\"max_slope_ugv\" value=\"x\"/>\' in launch file.");
       }
 
-      mapMsg.header.stamp = ros::Time::now();
+      mapMsg.header.stamp = this->now();
       for (int y = 0; y < MC->map.sizeY(); y++) {
         for (int x = 0; x < MC->map.sizeX(); x++) {
           int index = x + y * MC->map.sizeX();
@@ -224,11 +235,11 @@ public:
           mapMsg.data[index] = MC->map.get(x, y, slopeMax);
         }
       }
-      pubMapUGV.publish(mapMsg);
+      pubMapUGV->publish(mapMsg);
     }
 
     // pub map for UAV
-    if (pubMapUAV.getNumSubscribers() != 0) {
+    if (pubMapUAV->get_subscription_count() != 0) {
       for (int y = 0; y < MC->map.sizeY(); y++) {
         for (int x = 0; x < MC->map.sizeX(); x++) {
           int index = x + y * MC->map.sizeX();
@@ -236,11 +247,11 @@ public:
           mapMsg.data[index] = MC->map.get(x, y);
         }
       }
-      pubMapUAV.publish(mapMsg);
+      pubMapUAV->publish(mapMsg);
     }
 
     // pub rviz visualization for floor heigth map
-    if (pubMapFloor.getNumSubscribers() != 0) {
+    if (pubMapFloor->get_subscription_count() != 0) {
       if (MC->map.sizeY() == 0 || MC->map.sizeX() == 0)
         return;
       double vMax = NAN, vMin = NAN;
@@ -274,10 +285,10 @@ public:
         }
       }
 
-      pubMapFloor.publish(mapMsg);
+      pubMapFloor->publish(mapMsg);
     }
     // pub rviz visualization for cieling heigth map
-    if (pubMapCeiling.getNumSubscribers() != 0) {
+    if (pubMapCeiling->get_subscription_count() != 0) {
       if (MC->map.sizeY() == 0 || MC->map.sizeX() == 0)
         return;
       double vMax = NAN, vMin = NAN;
@@ -311,11 +322,11 @@ public:
         }
       }
 
-      pubMapCeiling.publish(mapMsg);
+      pubMapCeiling->publish(mapMsg);
     }
 
     // pub height map
-    if (pubHeightMap.getNumSubscribers() != 0) {
+    if (pubHeightMap->get_subscription_count() != 0) {
       for (int y = 0; y < MC->map.sizeY(); y++) {
         for (int x = 0; x < MC->map.sizeX(); x++) {
           int index = x + y * MC->map.sizeX();
@@ -324,11 +335,11 @@ public:
           heightMsg.top[index] = MC->map.getHeightTop(x, y);
         }
       }
-      pubHeightMap.publish(heightMsg);
+      pubHeightMap->publish(heightMsg);
     }
 
     // pub rviz visualization fro slope map
-    if (pubMapSlopeVis.getNumSubscribers() != 0) {
+    if (pubMapSlopeVis->get_subscription_count() != 0) {
       double vMax = slopeMax * 2, vMin = 0;
 
       for (int y = 0; y < MC->map.sizeY(); y++) {
@@ -343,11 +354,11 @@ public:
           mapMsg.data[index] = value;
         }
       }
-      pubMapSlopeVis.publish(mapMsg);
+      pubMapSlopeVis->publish(mapMsg);
     }
 
     // pub slope map
-    if (pubMapSlope.getNumSubscribers() != 0) {
+    if (pubMapSlope->get_subscription_count() != 0) {
       for (int y = 0; y < MC->map.sizeY(); y++) {
         for (int x = 0; x < MC->map.sizeX(); x++) {
           int index = x + y * MC->map.sizeX();
@@ -355,17 +366,17 @@ public:
           slopeMsg.slope[index] = MC->map.getSlope(x, y);
         }
       }
-      pubMapSlope.publish(slopeMsg);
+      pubMapSlope->publish(slopeMsg);
     }
   }
 };
 
 int main(int argc, char **argv) {
-  ros::init(argc, argv, "map_saver");
+  rclcpp::init(argc, argv);
 
-  MapToMap mtm;
-
-  ros::spin();
+  auto Node = make_shared<MapToMap>();
+  rclcpp::spin(Node);
+  rclcpp::shutdown();
 
   return 0;
 }

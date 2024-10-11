@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>mapconversion</name>
+  <version>1.0.0</version>
+  <description>The map_conversion_3d_to_2d package</description>
+
+  <maintainer email="scofre@ltu.se">scott</maintainer>
+  <license>MIT</license>
+
+  <!-- Dependencies -->
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <build_depend>rclcpp</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>mapconversion_msgs</build_depend>
+  <build_depend>tf2</build_depend>
+  <build_depend>tf2_ros</build_depend>
+  <build_depend>Eigen3</build_depend>
+  <depend>octomap_msgs</depend>
+  <depend>octomap</depend>
+
+  <exec_depend>rclcpp</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>mapconversion_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>tf2</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

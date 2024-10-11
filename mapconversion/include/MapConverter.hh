@@ -1,6 +1,5 @@
 #pragma once
 
-#include "HeightRangeMap.hh"
 #include "Map2D.hh"
 #include "datatypes.hh"
 

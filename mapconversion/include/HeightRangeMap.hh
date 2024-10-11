@@ -1,6 +1,9 @@
 #pragma once
 #include "datatypes.hh"
 
+point_int DIRECTIONS[] = {{1, 0},  {1, 1},   {0, 1},  {-1, 1},
+                          {-1, 0}, {-1, -1}, {0, -1}, {1, -1}};
+
 class HeightRangeMap {
 public:
   vector<vector<vector<heightRange>>> free;

@@ -1,23 +1,22 @@
 #include "datatypes.hh"
-
-#include <geometry_msgs/Pose.h>
-#include <mapconversion/HeightMap.h>
-#include <nav_msgs/Path.h>
+#include <geometry_msgs/msg/pose.hpp>
+#include <mapconversion_msgs/msg/height_map.hpp>
+#include <nav_msgs/msg/path.hpp>
+#include <rclcpp/rclcpp.hpp>
 
 using namespace std;
 
-class PathConverter {
+class PathConverter : public rclcpp::Node {
 private:
-  // ROS nh
-  ros::NodeHandle nh;
   // subs
-  ros::Subscriber subPath, subHeight;
+  rclcpp::Subscription<mapconversion_msgs::msg::HeightMap>::SharedPtr subHeight;
+  rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr subPath;
   // pub
-  ros::Publisher pubPath;
+  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pubPath;
 
   // Map data
-  mapconversion::HeightMap hMap;
-  nav_msgs::Path cPath;
+  mapconversion_msgs::msg::HeightMap hMap;
+  nav_msgs::msg::Path cPath;
   double currentResulution = 0;
 
   // collision area
@@ -36,25 +35,27 @@ private:
   double pathOffset;
 
 public:
-  PathConverter() {
-    ros::NodeHandle nh_priv("~");
-    collsionShape = nh_priv.param("use_collision_sphere", false);
-    collisionRadius = nh_priv.param("collision_radius", 1.0);
-    pathOffset = nh_priv.param("path_offset", 0.0);
-    pathSmothingLength = nh_priv.param("path_smothing_length", 5);
+  PathConverter() : Node("path_converter") {
+    collsionShape = this->declare_parameter("use_collision_sphere", false);
+    collisionRadius = this->declare_parameter("collision_radius", 1.0);
+    pathOffset = this->declare_parameter("path_offset", 0.0);
+    pathSmothingLength = this->declare_parameter("path_smothing_length", 5);
 
-    subHeight =
-        nh.subscribe("heightMap", 1, &PathConverter::heightCallback, this);
+    subHeight = this->create_subscription<mapconversion_msgs::msg::HeightMap>(
+        "heightMap", 1,
+        std::bind(&PathConverter::heightCallback, this, std::placeholders::_1));
 
-    subPath = nh.subscribe("pathIn", 10, &PathConverter::pathCallback, this);
+    subPath = this->create_subscription<nav_msgs::msg::Path>(
+        "pathIn", 10,
+        std::bind(&PathConverter::pathCallback, this, std::placeholders::_1));
 
-    pubPath = nh.advertise<nav_msgs::Path>("pathOut", 10);
+    pubPath = this->create_publisher<nav_msgs::msg::Path>("pathOut", 10);
     ;
   }
 
   ~PathConverter() {}
 
-  void heightCallback(mapconversion::HeightMap newHeightMap) {
+  void heightCallback(mapconversion_msgs::msg::HeightMap newHeightMap) {
     hMap = newHeightMap;
     updateCollisionArea(newHeightMap.info.resolution);
     updatePath();
@@ -96,7 +97,7 @@ public:
     }
   }
 
-  void pathCallback(nav_msgs::Path inPath) {
+  void pathCallback(nav_msgs::msg::Path inPath) {
     cPath = inPath;
     updatePath();
   }
@@ -104,18 +105,18 @@ public:
   void updatePath() {
     if (collisionArea.size() == 0)
       return;
-    nav_msgs::Path outPath = cPath;
+    nav_msgs::msg::Path outPath = cPath;
 
     setPathHeight3D(&outPath);
 
     if (collsionShape)
       solveCollisionUAV(&outPath);
 
-    pubPath.publish(outPath);
+    pubPath->publish(outPath);
   }
 
   // get the hight over floor using pathOffset
-  void setPathHeight3D(nav_msgs::Path *path) {
+  void setPathHeight3D(nav_msgs::msg::Path *path) {
     vector<double> heightList;
     for (int i = 0; i < pathSmothingLength && i < path->poses.size(); i++) {
       auto p = path->poses[i];
@@ -146,7 +147,7 @@ public:
   }
 
   // move path up or down to avoid collisions for a UAV
-  void solveCollisionUAV(nav_msgs::Path *path) {
+  void solveCollisionUAV(nav_msgs::msg::Path *path) {
     for (int i = 0; i < path->poses.size(); i++) {
       auto *pose = &path->poses[i];
       point_int point = worldToMap(pose->pose);
@@ -177,7 +178,7 @@ public:
     }
   }
 
-  point_int worldToMap(geometry_msgs::Pose position) {
+  point_int worldToMap(geometry_msgs::msg::Pose position) {
     double rez = hMap.info.resolution;
     return {int((position.position.x - hMap.info.origin.position.x) / rez),
             int((position.position.y - hMap.info.origin.position.y) / rez)};
@@ -201,10 +202,11 @@ public:
 };
 
 int main(int argc, char **argv) {
-  ros::init(argc, argv, "path_converter");
+  rclcpp::init(argc, argv);
 
-  PathConverter PC;
-  ros::spin();
+  auto node = std::make_shared<PathConverter>();
+  rclcpp::spin(node);
+  rclcpp::shutdown();
 
   return 0;
 }
