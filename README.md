@@ -35,7 +35,7 @@ If you use this ROS2 package in a scientific publication, please cite the paper.
 
 ## Installation
 
-1. Install [OctoMap for ROS2](https://github.com/OctoMap/octomap_mapping/tree/ros2) or `$ sudo apt install ros-noetic-octomap-server`
+1. Install [OctoMap for ROS2](https://github.com/OctoMap/octomap_mapping/tree/ros2) or `$ sudo apt install ros-<ROS2 version>-octomap-server`
 2. Navigate to the src folder in the ROS2 workspace `cd ~/ros2_ws/src`
 3. Clone the GitHub  to ROS2 workspace: `git clone https://github.com/LTU-RAI/Map-Conversion-3D-Voxel-Map-to-2D-Occupancy-Map.git`
 4. `cd ..`
