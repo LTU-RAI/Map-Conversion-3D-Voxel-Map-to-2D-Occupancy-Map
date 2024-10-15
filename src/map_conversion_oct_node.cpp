@@ -53,7 +53,7 @@ public:
     mapFrame = nh_priv.param("map_frame", string("map"));
     mapZpos = nh_priv.param("map_position_z", 0.0);
 
-    subOctMap = nh.subscribe("/octomap", 1, &MapToMap::mapCallback, this);
+    subOctMap = nh.subscribe("/spot/octomap_binary", 1, &MapToMap::mapCallback, this);
 
     pubMapUGV = nh.advertise<nav_msgs::OccupancyGrid>("/mapUGV", 5);
     pubMapUAV = nh.advertise<nav_msgs::OccupancyGrid>("/mapUAV", 5);
@@ -217,6 +217,7 @@ public:
       }
 
       mapMsg.header.stamp = ros::Time::now();
+      mapMsg.info.origin.orientation.w = 1;
       for (int y = 0; y < MC->map.sizeY(); y++) {
         for (int x = 0; x < MC->map.sizeX(); x++) {
           int index = x + y * MC->map.sizeX();
