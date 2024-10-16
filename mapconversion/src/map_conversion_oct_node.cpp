@@ -210,6 +210,10 @@ public:
     mapMsg.info.origin.position.x = MC->map.offsetX();
     mapMsg.info.origin.position.y = MC->map.offsetY();
     mapMsg.info.origin.position.z = mapZpos;
+    mapMsg.info.origin.orientation.x = 0;
+    mapMsg.info.origin.orientation.y = 0;
+    mapMsg.info.origin.orientation.z = 0;
+    mapMsg.info.origin.orientation.w = 1;
     heightMsg.info = mapMsg.info;
     slopeMsg.info = mapMsg.info;
     mapMsg.data.resize(mapMsg.info.width * mapMsg.info.height);
