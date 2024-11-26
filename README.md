@@ -21,14 +21,15 @@ This ROS2 package is based on the following article:
 **Voxel Map to Occupancy Map Conversion Using Free Space Projection for Efficient Map Representation for Aerial and Ground Robots** [[ArXiv](https://arxiv.org/abs/2406.07270)]
 
 ```
-@misc{fredriksson20243d,
-      title={Voxel Map to Occupancy Map Conversion Using Free Space Projection for Efficient Map Representation for Aerial and Ground Robots}, 
-      author={Scott Fredriksson and Akshit Saradagi and George Nikolakopoulos},
-      year={2024},
-      eprint={2406.07270},
-      archivePrefix={arXiv},
-      primaryClass={cs.RO}
-}
+@ARTICLE{10750397,
+  author={Fredriksson, Scott and Saradagi, Akshit and Nikolakopoulos, George},
+  journal={IEEE Robotics and Automation Letters}, 
+  title={Voxel Map to Occupancy Map Conversion Using Free Space Projection for Efficient Map Representation for Aerial and Ground Robots}, 
+  year={2024},
+  volume={9},
+  number={12},
+  pages={11625-11632},
+  doi={10.1109/LRA.2024.3495575}}
 ```
 
 If you use this ROS2 package in a scientific publication, please cite the paper.
