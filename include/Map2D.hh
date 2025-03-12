@@ -418,8 +418,8 @@ private:
         newSubMapSlope[x + offsetIndexX][y + offsetIndexY] = subMapSlope[x][y];
       }
     }
-    subMapOffsetX += offsetIndexX * SUBMAP_SIZE;
-    subMapOffsetY += offsetIndexY * SUBMAP_SIZE;
+    subMapOffsetX += offsetIndexX * (SUBMAP_SIZE + 1);
+    subMapOffsetY += offsetIndexY * (SUBMAP_SIZE + 1);
     subMap = newSubMap;
     subMapHeight = newSubMapHeight;
     subMapHeightTop = newSubMapHeightTop;
