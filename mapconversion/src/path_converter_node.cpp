@@ -23,6 +23,12 @@ private:
   bool collsionShape;
   double collisionRadius;
 
+  // QoS
+  bool sub_qos_reliable;
+  bool sub_qos_transient_local;
+  bool pub_qos_reliable;
+  bool pub_qos_transient_local;
+
   struct collisionPoint {
     int x, y;
     double z;
@@ -40,16 +46,44 @@ public:
     collisionRadius = this->declare_parameter("collision_radius", 1.0);
     pathOffset = this->declare_parameter("path_offset", 0.0);
     pathSmothingLength = this->declare_parameter("path_smothing_length", 5);
+    sub_qos_reliable = this->declare_parameter("subscriber_qos_reliable", true);
+    pub_qos_reliable = this->declare_parameter("publisher_qos_reliable", true);
+    sub_qos_transient_local =
+        this->declare_parameter("subscriber_qos_transient_local", false);
+    pub_qos_transient_local =
+        this->declare_parameter("publisher_qos_transient_local", false);
+
+    // QoS profiles
+    rclcpp::QoS sub_qos_profile = rclcpp::QoS(rclcpp::KeepLast(5));
+    if (sub_qos_reliable)
+      sub_qos_profile.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
+    else
+      sub_qos_profile.reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
+    if (sub_qos_transient_local)
+      sub_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
+    else
+      sub_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+
+    rclcpp::QoS pub_qos_profile = rclcpp::QoS(rclcpp::KeepLast(5));
+    if (pub_qos_reliable)
+      pub_qos_profile.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
+    else
+      pub_qos_profile.reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
+    if (pub_qos_transient_local)
+      pub_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
+    else
+      pub_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
 
     subHeight = this->create_subscription<mapconversion_msgs::msg::HeightMap>(
-        "heightMap", 1,
+        "heightMap", sub_qos_profile,
         std::bind(&PathConverter::heightCallback, this, std::placeholders::_1));
 
     subPath = this->create_subscription<nav_msgs::msg::Path>(
-        "pathIn", 10,
+        "pathIn", sub_qos_profile,
         std::bind(&PathConverter::pathCallback, this, std::placeholders::_1));
 
-    pubPath = this->create_publisher<nav_msgs::msg::Path>("pathOut", 10);
+    pubPath =
+        this->create_publisher<nav_msgs::msg::Path>("pathOut", pub_qos_profile);
     ;
   }
 

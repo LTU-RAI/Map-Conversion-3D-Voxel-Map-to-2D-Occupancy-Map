@@ -9,14 +9,19 @@ def generate_launch_description():
             name='path_converter',
             output='screen',
             remappings=[
-                ('pathIn', '/path'),
-                ('pathOut', '/path_3d')
+                #('pathIn', '/path'),
+                #('pathOut', '/path_3d')
             ],
-            parameters=[
-                {'use_collision_sphere': True},
-                {'collision_radius': 0.50},
-                {'path_offset': 1},
-                {'path_smothing_length': 20}
-            ]
+            parameters=[{
+                'use_collision_sphere': False,
+                'collision_radius': 1.0,
+                'path_offset': 0.0},
+                'path_smothing_length': 5
+                #QoS parameters
+                'subscriber_qos_reliable': True,
+                'subscriber_qos_transient_local': False,
+                'publisher_qos_reliable': True,
+                'publisher_qos_transient_local': False,
+            }]
         )
     ])

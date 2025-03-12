@@ -18,17 +18,18 @@ The Height map can also be used to convert paths from 2D to 3D using the path_co
 
 This ROS2 package is based on the following article:
 
-**Voxel Map to Occupancy Map Conversion Using Free Space Projection for Efficient Map Representation for Aerial and Ground Robots** [[ArXiv](https://arxiv.org/abs/2406.07270)]
+**Voxel Map to Occupancy Map Conversion Using Free Space Projection for Efficient Map Representation for Aerial and Ground Robots** [[RA-L](https://ieeexplore.ieee.org/abstract/document/10750397)] [[ArXiv](https://arxiv.org/abs/2406.07270)]
 
 ```
-@misc{fredriksson20243d,
-      title={Voxel Map to Occupancy Map Conversion Using Free Space Projection for Efficient Map Representation for Aerial and Ground Robots}, 
-      author={Scott Fredriksson and Akshit Saradagi and George Nikolakopoulos},
-      year={2024},
-      eprint={2406.07270},
-      archivePrefix={arXiv},
-      primaryClass={cs.RO}
-}
+@ARTICLE{10750397,
+  author={Fredriksson, Scott and Saradagi, Akshit and Nikolakopoulos, George},
+  journal={IEEE Robotics and Automation Letters}, 
+  title={Voxel Map to Occupancy Map Conversion Using Free Space Projection for Efficient Map Representation for Aerial and Ground Robots}, 
+  year={2024},
+  volume={9},
+  number={12},
+  pages={11625-11632},
+  doi={10.1109/LRA.2024.3495575}}
 ```
 
 If you use this ROS2 package in a scientific publication, please cite the paper.
@@ -55,15 +56,31 @@ A node that converts the input 3D voxel map to a 2D occupancy map and a height m
 
 #### Ros Parameters 
 
-`map_frame`: Name of frame map.
+##### Map Parameters
 
-`map_position_z`: Z position used for the outputted 2D maps. 
+`map_frame` (default: `map`): Name of frame map.
 
-`minimum_z`: Minimum height of free space the robot can traverse. 
+`map_position_z` (default: `0.0`): Z position used for the outputted 2D maps. 
 
-`max_slope_ugv`: Maximum slope ground robot can climb, used to detect and represent obstacles in the 2D occupancy map
+`minimum_z` (default: `1.0`): Minimum height of free space the robot can traverse. 
 
-`slope_estimation_size`: Determine the size of the area used to estimate the slope in one cell. The size of the area will be equal to (2*`slope_estimation_size`+1)².
+`max_slope_ugv` (default: `inf`): Maximum slope ground robot can climb, used to detect and represent obstacles in the 2D occupancy map
+
+`slope_estimation_size` (default: `2`): Determine the size of the area used to estimate the slope in one cell. The size of the area will be equal to (2*`slope_estimation_size`+1)².
+
+`partial_map_updates` (default: `true`): If `true`, only the changed areas of the 3D voxel map will be updated in the 2D map. If set to `false`, the complete 2D map will be updated each time a new voxel map is received.
+
+##### QoS Parameters
+
+By default, the node uses the QoS policy of `Reliable` for reliability and `Volatile` for durability. Adjusting the following parameters allows these policies to be modified for compatibility with other ROS packages. It is recommended to keep the default values unless changes are explicitly necessary.
+
+`subscriber_qos_reliable` (default: `true`): Controls the reliability policy for the subscribed topic `octomap`. When set to `true`, the reliability policy is `Reliable`. When set to `false`, the reliability policy is `Best Effort`.
+
+`subscriber_qos_transient_local` (default: `false`): Controls the durability policy for the subscribed topic `octomap`. When set to `true`, the durability policy is `Transient Local`. When set to `false`, the durability policy is `Volatile`.
+
+`publisher_qos_reliable` (default: `true`): Controls the reliability policy for the published topics: `mapUGV`, `mapUAV`, `heightMap`, and `slopeMap`. When set to `true`, the reliability policy is `Reliable`. When set to `false`, the reliability policy is `Best Effort`.
+
+`publisher_qos_transient_local` (default: `false`): Controls the durability policy for the published topics: `mapUGV`, `mapUAV`, `heightMap`, and `slopeMap`. When set to `true`, the durability policy is `Transient Local`, and topics will publish messages even without active subscribers. When set to `false`, the durability policy is `Volatile`, and topics will publish messages only when subscribers are connected.
 
 #### Subscribed Topics 
 
@@ -93,13 +110,27 @@ A node that converts the input path generated using a 2D planer to a 3D path usi
 
 #### Ros Parameters 
 
-`use_collision_sphere`: Add collision sphere around the robot. Use `true` for aerial robots and `false` for ground robots. If a collision with either the floor or ceiling is detected during path conversion, the path will be adjusted so that no collision occurs.
+##### Path Parameters
 
-`collision_radius`: Radius for collision sphere, only used if `use_collision_sphere` is  `true`. 
+`use_collision_sphere` (default: `false`): Add collision sphere around the robot. Use `true` for aerial robots and `false` for ground robots. If a collision with either the floor or ceiling is detected during path conversion, the path will be adjusted so that no collision occurs.
 
-`path_offset`: Desired height above ground for the robot.
+`collision_radius` (default: `1.0`): Radius for collision sphere, only used if `use_collision_sphere` is  `true`. 
 
-`path_smothing_length`: The amount of steps before and after the robot is used for path smoothing.  
+`path_offset` (default: `0.0`): Desired height above ground for the robot.
+
+`path_smothing_length` (default: `5`): The amount of steps before and after the robot is used for path smoothing.  
+
+##### QoS Parameters
+
+By default, the node uses the QoS policy of `Reliable` for reliability and `Volatile` for durability. Adjusting the following parameters allows these policies to be modified for compatibility with other ROS packages. It is recommended to keep the default values unless changes are explicitly necessary.
+
+`subscriber_qos_reliable` (default: `true`): Controls the reliability policy for the subscribed topics: `heightMap` and `pathIn`. When set to `true`, the reliability policy is `Reliable`. When set to `false`, the reliability policy is `Best Effort`.
+
+`subscriber_qos_transient_local` (default: `false`): Controls the durability policy for the subscribed topics: `heightMap` and `pathIn`. When set to `true`, the durability policy is `Transient Local`. When set to `false`, the durability policy is `Volatile`.
+
+`publisher_qos_reliable` (default: `true`): Controls the reliability policy for the published topic `pathOut`. When set to `true`, the reliability policy is `Reliable`. When set to `false`, the reliability policy is `Best Effort`.
+
+`publisher_qos_transient_local` (default: `false`): Controls the durability policy for the published topic `pathOut`. When set to `true`, the durability policy is `Transient Local`. When set to `false`, the durability policy is `Volatile`.
 
 #### Subscribed Topics
 

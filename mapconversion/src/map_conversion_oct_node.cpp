@@ -17,6 +17,7 @@
 #include <rclcpp/logging.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/utilities.hpp>
+#include <rmw/types.h>
 #include <vector>
 
 using namespace std;
@@ -46,35 +47,68 @@ private:
   int minimumOccupancy;
   string mapFrame;
   double mapZpos;
+  bool partial_map_updates;
+  bool sub_qos_reliable;
+  bool sub_qos_transient_local;
+  bool pub_qos_reliable;
+  bool pub_qos_transient_local;
 
 public:
   MapToMap() : Node("map_conversion") {
     slopeMax = this->declare_parameter("max_slope_ugv", INFINITY);
     slopeEstimationSize = this->declare_parameter("slope_estimation_size", 1);
-    slopeEstimationSize = max(slopeEstimationSize, 1);
+    slopeEstimationSize = max(slopeEstimationSize, 2);
     minimumZ = this->declare_parameter("minimum_z", 1.0);
     minimumOccupancy = this->declare_parameter("minimum_occupancy", 10);
     mapFrame = this->declare_parameter("map_frame", string("map"));
     mapZpos = this->declare_parameter("map_position_z", 0.0);
+    partial_map_updates = this->declare_parameter("partial_map_updates", false);
+    sub_qos_reliable = this->declare_parameter("subscriber_qos_reliable", true);
+    pub_qos_reliable = this->declare_parameter("publisher_qos_reliable", true);
+    sub_qos_transient_local =
+        this->declare_parameter("subscriber_qos_transient_local", false);
+    pub_qos_transient_local =
+        this->declare_parameter("publisher_qos_transient_local", false);
 
+    // QoS profiles
+    rclcpp::QoS sub_qos_profile = rclcpp::QoS(rclcpp::KeepLast(5));
+    if (sub_qos_reliable)
+      sub_qos_profile.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
+    else
+      sub_qos_profile.reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
+    if (sub_qos_transient_local)
+      sub_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
+    else
+      sub_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+
+    rclcpp::QoS pub_qos_profile = rclcpp::QoS(rclcpp::KeepLast(5));
+    if (pub_qos_reliable)
+      pub_qos_profile.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
+    else
+      pub_qos_profile.reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
+    if (pub_qos_transient_local)
+      pub_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
+    else
+      pub_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+
+    // Subscribers and publishers
     subOctMap = this->create_subscription<octomap_msgs::msg::Octomap>(
-        "/octomap", 1,
+        "/octomap", sub_qos_profile,
         std::bind(&MapToMap::mapCallback, this, std::placeholders::_1));
-
-    pubMapUGV =
-        this->create_publisher<nav_msgs::msg::OccupancyGrid>("/mapUGV", 5);
-    pubMapUAV =
-        this->create_publisher<nav_msgs::msg::OccupancyGrid>("/mapUAV", 5);
+    pubMapUGV = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
+        "/mapUGV", pub_qos_profile);
+    pubMapUAV = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
+        "/mapUAV", pub_qos_profile);
     pubMapFloor = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
         "/visualization_floor_map", 5);
     pubMapCeiling = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
         "/visualization_ceiling_map", 5);
     pubHeightMap = this->create_publisher<mapconversion_msgs::msg::HeightMap>(
-        "/heightMap", 5);
+        "/heightMap", pub_qos_profile);
     pubMapSlopeVis = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
         "/visualization_slope_map", 5);
     pubMapSlope = this->create_publisher<mapconversion_msgs::msg::SlopeMap>(
-        "/slopeMap", 5);
+        "/slopeMap", pub_qos_profile);
     OcMap = NULL;
     MC = NULL;
   }
@@ -100,7 +134,7 @@ public:
     newOcMap->getMetricMin(min_x, min_y, min_z);
     newOcMap->getMetricMax(max_x, max_y, max_z);
     vector<double> minMax(6);
-    if (OcMap == NULL) {
+    if (OcMap == NULL || !partial_map_updates) {
       minMax[0] = min_x;
       minMax[1] = max_x;
       minMax[2] = min_y;
@@ -222,7 +256,7 @@ public:
     slopeMsg.slope.resize(mapMsg.info.width * mapMsg.info.height);
 
     // pub map for UGV
-    if (pubMapUGV->get_subscription_count() != 0) {
+    if (pubMapUGV->get_subscription_count() != 0 || pub_qos_transient_local) {
       if (isinf(slopeMax)) {
         RCLCPP_WARN(
             this->get_logger(),
@@ -243,7 +277,7 @@ public:
     }
 
     // pub map for UAV
-    if (pubMapUAV->get_subscription_count() != 0) {
+    if (pubMapUAV->get_subscription_count() != 0 || pub_qos_transient_local) {
       for (int y = 0; y < MC->map.sizeY(); y++) {
         for (int x = 0; x < MC->map.sizeX(); x++) {
           int index = x + y * MC->map.sizeX();
@@ -330,7 +364,8 @@ public:
     }
 
     // pub height map
-    if (pubHeightMap->get_subscription_count() != 0) {
+    if (pubHeightMap->get_subscription_count() != 0 ||
+        pub_qos_transient_local) {
       for (int y = 0; y < MC->map.sizeY(); y++) {
         for (int x = 0; x < MC->map.sizeX(); x++) {
           int index = x + y * MC->map.sizeX();
@@ -362,7 +397,7 @@ public:
     }
 
     // pub slope map
-    if (pubMapSlope->get_subscription_count() != 0) {
+    if (pubMapSlope->get_subscription_count() != 0 || pub_qos_transient_local) {
       for (int y = 0; y < MC->map.sizeY(); y++) {
         for (int x = 0; x < MC->map.sizeX(); x++) {
           int index = x + y * MC->map.sizeX();
