@@ -28,7 +28,7 @@ void MapConverter::updateMap(vector<voxel> vMap, vector<double> minMax) {
   for (voxel v : vMap) {
     // as voxels can be larger then a map cell, this loop goes through all cell
     // voxel occupies
-    int sizeIndex = v.halfSize * 2 / MapConverter::map.getResulution();
+    int sizeIndex = v.halfSize * 2.1 / MapConverter::map.getResulution();
     for (int x = 0; x < sizeIndex; x++) {
       for (int y = 0; y < sizeIndex; y++) {
         int posX = (v.position.x - v.halfSize + resolution * x - minMax[0]) /
