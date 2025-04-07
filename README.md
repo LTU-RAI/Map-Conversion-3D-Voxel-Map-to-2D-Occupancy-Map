@@ -72,6 +72,8 @@ A node that converts the input 3D voxel map to a 2D occupancy map and a height m
 
 `slope_estimation_size`: Determine the size of the area used to estimate the slope in one cell. The size of the area will be equal to (2*`slope_estimation_size`+1)².
 
+`minimum_occupancy` (default: 10): The `minimum_occupancy` parameter defines the minimum occupancy percentage (ranging from 0 to 100) at which the method considers a cell that is part of a wall to be occupied. This parameter only controls the classification of walls (the boundaries between free space and unknown space) for detecting obstacles within map change the parameter `max_slope_ugv`.
+
 #### Subscribed Topics *for `map_conversion_ufo_node`*
 
 `ufomap`: Input voxel map. 
